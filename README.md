@@ -103,4 +103,4 @@ The reader lives in `backend/src/delta_reader.py`. Swap `DeltaTable` for a diffe
 
 ## License
 
-[MIT](LICENSE)
+[Apache 2.0](LICENSE)
