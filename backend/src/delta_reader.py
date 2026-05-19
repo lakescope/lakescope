@@ -65,6 +65,16 @@ def _is_checkpoint_error(e: Exception) -> bool:
     return "parquet" in msg or "get_byte_ranges" in msg or "decoding response body" in msg
 
 
+def _schema_field(name: str, type_str: str, nullable: bool, metadata: dict) -> dict:
+    return {
+        "name": name,
+        "type": type_str,
+        "nullable": nullable,
+        "metadata": metadata,
+        "generated_expression": metadata.get("delta.generationExpression"),
+    }
+
+
 def _safe_int(d: dict, key: str) -> Optional[int]:
     try:
         return int(d[key])
@@ -319,15 +329,8 @@ class DeltaReader:
         log.info("get_schema: loading")
         try:
             dt = self._load(without_files=True)
-            return [
-                {
-                    "name": f.name,
-                    "type": str(f.type),
-                    "nullable": f.nullable,
-                    "metadata": f.metadata or {},
-                }
-                for f in dt.schema().fields
-            ]
+            return [_schema_field(f.name, str(f.type), f.nullable, f.metadata or {})
+                    for f in dt.schema().fields]
         except Exception as e:
             if not _is_checkpoint_error(e):
                 raise
@@ -342,12 +345,12 @@ class DeltaReader:
         except Exception:
             return []
         return [
-            {
-                "name": f.get("name", ""),
-                "type": str(f.get("type", "")),
-                "nullable": f.get("nullable", True),
-                "metadata": f.get("metadata") or {},
-            }
+            _schema_field(
+                f.get("name", ""),
+                str(f.get("type", "")),
+                f.get("nullable", True),
+                f.get("metadata") or {},
+            )
             for f in schema_json.get("fields", [])
         ]
 
